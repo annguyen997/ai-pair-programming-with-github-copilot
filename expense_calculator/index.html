@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <!-- <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"> -->
+  <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+      margin: 0;
+      color: #333;
+      padding: 20px;
+    }
+
+    /* Style name and amount inputs */
+    input {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      border: 1px solid #ccc; 
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    /* Style the select input and options */
+    select {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      display: inline-block;
+      border: 1px solid #ccc; 
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    /* Style the submit input */
+    input[type="submit"] {
+      width: 100%;
+      background-color: #4CAF50;
+      color: white;
+      padding: 14px 20px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Material style table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+    }
+    .container { 
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    button {
+      background-color: #f44336; /* Red */
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Expense Tracker</h1>
+    <!-- Create inputs for name, amount, and category -->
+    <form id="expense-form">
+      <input type="text" name="name" placeholder="Name" required>
+      <input type="number" name="amount" placeholder="Amount" required>
+      <select name="category" required>
+        <option value="Food">Food</option>
+        <option value="Transportation">Transportation</option>
+        <option value="Entertainment">Entertainment</option>
+        <option value="Other">Other</option>
+      </select>
+      <button type="submit">Add Expense</button>
+    </form>
+  </div>
+  <script>
+    const apiUri = '/api/expenses/';
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    function renderExpense(expense) {
+      // Create a tr with td for name, amount, and timestamp
+      // Use template strings
+      const tr = document.createElement('tr');
+
+      // Make the timestamp human-readable
+      const timestampString = new Date(expense.timestamp).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric'
+      });
+
+      tr.innerHTML = `
+        <td>${expense.name}</td>
+        <td>${expense.amount}</td>
+        <td>${expense.category}</td>
+        <td>${timestampString}</td>
+      `;
+      // Add a td with a delete button 'X'
+      // Bind the deleteExpense button to the button
+      const td = document.createElement('td');
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'x';
+      // Add event listener to the delete button
+      deleteButton.addEventListener('click', () => {
+        deleteExpense(expense.pk);
+      });
+      td.appendChild(deleteButton);
+      tr.appendChild(td);
+      // Add the tr to the table
+      table.appendChild(tr);
+    }
+
+    function refreshTable() {
+      table.innerHTML = ''; // Clear the table
+      getExpenses();
+    }
+
+    function getExpenses() {
+      fetch(apiUri, {
+        method: 'GET',
+        headers: headers
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.table(data);
+          data.forEach(expense => renderExpense(expense));
+        })
+        .catch(error => console.error('Error fetching expenses:', error));
+
+    }
+    function postExpense() {
+      // name, amount, category(Food, Transportation, Entertainment, Other)
+      const expense = {
+        name: document.querySelector("input[name='name']").value,
+        amount: parseFloat(document.querySelector("input[name='amount']").value),
+        category: document.querySelector("select[name='category']").value
+      };
+
+      fetch(apiUri, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(expense)
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.table(data);
+          renderExpense(data);
+          //refreshTable();
+        })
+        .catch(error => console.error('Error posting expense:', error));
+
+    }
+    function deleteExpense(pk) {
+      // API uri ends with a trailing slash
+      fetch(`${apiUri}${pk}/`, {
+        method: 'DELETE',
+        headers: headers
+      })
+        .then(response => {
+          if (response.ok) {
+            console.log(`Expense with pk ${pk} deleted successfully.`);
+            // refreshTable();
+          } else {
+            console.error('Error deleting expense:', response.statusText);
+          }
+        })
+        .catch(error => console.error('Error deleting expense:', error));
+    }
+
+    const table = document.createElement('table');
+    const container = document.querySelector('.container');
+    container.appendChild(table);
+    // document.body.appendChild(table);
+    refreshTable();
+    document.querySelector("input[type='submit']").addEventListener('click', postExpense);
+    
+    // deleteExpense(3);
+    // getExpenses();
+    // postExpense();
+
+  </script>
+</body>
+
+</html>
